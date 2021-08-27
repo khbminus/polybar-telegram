@@ -1,3 +1,9 @@
+// Package main: Application that parses telegram dialogs and get numbers of unread
+// You should set some environment variables:
+// TG_APPID: your app ID from https://my.telegram.org/apps
+// TG_APPHASH: your app hash from https://my.telegram.org/apps
+// PHONE: phone number of account that you use
+// AUTH_FILE: file to save authentication data
 package main
 
 import (
@@ -37,7 +43,6 @@ func getMapperDialog(dialog *tg.Dialog) MessageMapper {
 
 const DialogsLimit = 100
 
-//need TG_APPID TG_APPHASH PHONE AUTH_FILE
 func main() {
 	sessionStorage := &MemorySession{}
 	appId, err := strconv.Atoi(os.Getenv("TG_APPID"))
@@ -55,11 +60,10 @@ func main() {
 		api := client.API()
 		params := tg.MessagesGetDialogsRequest{
 			OffsetPeer: &tg.InputPeerEmpty{},
-			OffsetID: 0,
-			Limit: DialogsLimit,
+			OffsetID:   0,
+			Limit:      DialogsLimit,
 		}
 		sum := 0
-		was := make(map[tg.PeerClass]bool)
 		for flag := true; flag; {
 			dialogs, err := api.MessagesGetDialogs(ctx, &params)
 			for err != nil {
@@ -94,13 +98,7 @@ func main() {
 					if d.FolderID != 0 {
 						continue
 					}
-					_, ok := was[d.Peer]
-					if ok  {
-						fmt.Printf("was: %v\n", d)
-					}
-					was[d.Peer] = true
-					_, ok = m[getMapperDialog(d)]
-					if (d.UnreadMark || d.UnreadCount > 0) {
+					if d.UnreadMark || d.UnreadCount > 0 {
 						sum++
 					}
 				}
