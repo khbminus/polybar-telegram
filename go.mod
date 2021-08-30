@@ -1,4 +1,4 @@
-module polybar-telegram
+module github.com/Doktorkrab/polybar-telegram
 
 go 1.17
 
