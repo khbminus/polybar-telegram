@@ -21,9 +21,13 @@ polybar-telegram needs some environs:
 - PHONE - mobile phone number used for authorization
 - AUTH_FILE - path to file that will use to persist login data
 
-After installation, you should run script in terminal with flag -auth to log in into Telegram.
+After installation, you should run `polybar-telegram` in terminal with auth flag:
+```shell
+# make sure polybar-telegram is in $PATH
+polybar-telegram -auth
+```
 
-## Script
+## Module
 ```ini
 [module/telegram]
 type = custom/script
