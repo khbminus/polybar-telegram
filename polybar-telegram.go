@@ -67,20 +67,18 @@ func main() {
 		for flag := true; flag; {
 			dialogs, err := api.MessagesGetDialogs(ctx, &params)
 			for err != nil {
-				switch e := xerrors.Unwrap(err).(type) {
-				case *tgerr.Error:
+				if e, ok := xerrors.Unwrap(err).(*tgerr.Error); ok {
 					if !e.IsCode(420) {
 						return err
 					} else {
 						time.Sleep(30 * time.Second)
 					}
-				default:
+				} else {
 					return err
 				}
 				dialogs, err = api.MessagesGetDialogs(ctx, &params)
 			}
-			switch v := dialogs.(type) {
-			case *tg.MessagesDialogsSlice:
+			if v, ok := dialogs.(*tg.MessagesDialogsSlice); ok {
 				m := make(map[MessageMapper]*tg.Message)
 				for _, t := range v.Messages {
 					switch message := t.(type) {
@@ -115,7 +113,7 @@ func main() {
 					params.OffsetID = lastMessage.ID
 					params.OffsetDate = lastMessage.Date
 				}
-			default:
+			} else {
 				flag = false
 			}
 		}
