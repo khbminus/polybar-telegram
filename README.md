@@ -27,6 +27,6 @@ After installation, you should run script in terminal with flag -auth to log in 
 ```ini
 [module/telegram]
 type = custom/script
-exec = $HOMR/go/bin/polybar-telegram
+exec = $HOME/go/bin/polybar-telegram
 interval = 10 
 ```
