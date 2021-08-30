@@ -24,6 +24,11 @@ type AuthData struct {
 
 	phone string
 }
+type NotAuthorizedError struct{}
+
+func (m *NotAuthorizedError) Error() string {
+	return "Not Authorized"
+}
 
 func (a AuthData) AcceptTermsOfService(ctx context.Context, tos tg.HelpTermsOfService) error {
 	panic("implement me")
@@ -55,10 +60,18 @@ func (a AuthData) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
 	return strings.TrimSpace(code), nil
 }
 
-func InvokeAuth(client *telegram.Client, ctx context.Context) error {
+func InvokeAuth(client *telegram.Client, ctx context.Context, needAuth bool) error {
 	flow := auth.NewFlow(AuthData{
 		phone: os.Getenv("PHONE"),
 	}, auth.SendCodeOptions{})
+	if !needAuth {
+		if status, err := client.Auth().Status(ctx); err != nil {
+			return err
+		} else if !status.Authorized {
+			return &NotAuthorizedError{}
+		}
+		return nil
+	}
 	return client.Auth().IfNecessary(ctx, flow)
 }
 

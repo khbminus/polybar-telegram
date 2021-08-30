@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
@@ -44,6 +45,9 @@ func getMapperDialog(dialog *tg.Dialog) MessageMapper {
 const DialogsLimit = 100
 
 func main() {
+	firstAuth := flag.Bool("auth", false, "perform authorization")
+	flag.Parse()
+
 	sessionStorage := &MemorySession{}
 	appId, err := strconv.Atoi(os.Getenv("TG_APPID"))
 	if err != nil {
@@ -52,10 +56,15 @@ func main() {
 	client := telegram.NewClient(appId, os.Getenv("TG_APPHASH"), telegram.Options{
 		SessionStorage: sessionStorage,
 	})
+
 	if err := client.Run(context.Background(), func(ctx context.Context) error {
-		err := InvokeAuth(client, ctx)
+		err := InvokeAuth(client, ctx, *firstAuth)
 		if err != nil {
 			return err
+		}
+		if *firstAuth {
+			fmt.Println("Successfully logged in.")
+			return nil
 		}
 		api := client.API()
 		params := tg.MessagesGetDialogsRequest{
@@ -64,7 +73,7 @@ func main() {
 			Limit:      DialogsLimit,
 		}
 		sum := 0
-		for flag := true; flag; {
+		for isEnded := true; isEnded; {
 			dialogs, err := api.MessagesGetDialogs(ctx, &params)
 			for err != nil {
 				if e, ok := xerrors.Unwrap(err).(*tgerr.Error); ok {
@@ -76,8 +85,10 @@ func main() {
 				} else {
 					return err
 				}
+
 				dialogs, err = api.MessagesGetDialogs(ctx, &params)
 			}
+
 			if v, ok := dialogs.(*tg.MessagesDialogsSlice); ok {
 				m := make(map[MessageMapper]*tg.Message)
 				for _, t := range v.Messages {
@@ -86,10 +97,12 @@ func main() {
 						m[getMapper(message)] = message
 					}
 				}
+
 				if len(v.Dialogs) < DialogsLimit {
-					flag = false
+					isEnded = false
 					break
 				}
+
 				var lastMessage *tg.Message = nil
 				for _, dd := range v.Dialogs {
 					d := dd.(*tg.Dialog)
@@ -100,6 +113,7 @@ func main() {
 						sum++
 					}
 				}
+
 				for i := len(v.Dialogs) - 1; i >= 0; i-- {
 					d := v.Dialogs[i].(*tg.Dialog)
 					k, ok := m[getMapperDialog(d)]
@@ -108,13 +122,14 @@ func main() {
 						break
 					}
 				}
+
 				params.ExcludePinned = true
 				if lastMessage != nil {
 					params.OffsetID = lastMessage.ID
 					params.OffsetDate = lastMessage.Date
 				}
 			} else {
-				flag = false
+				isEnded = false
 			}
 		}
 		fmt.Println(sum)
