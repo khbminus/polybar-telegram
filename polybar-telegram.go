@@ -46,6 +46,7 @@ const DialogsLimit = 100
 
 func main() {
 	firstAuth := flag.Bool("auth", false, "perform authorization")
+	onlyUnmuted := flag.Bool("onlyUnmuted", false, "count only unmuted dialogs")
 	flag.Parse()
 
 	sessionStorage := &MemorySession{}
@@ -56,6 +57,7 @@ func main() {
 	client := telegram.NewClient(appId, os.Getenv("TG_APPHASH"), telegram.Options{
 		SessionStorage: sessionStorage,
 	})
+	nowTime := time.Now()
 
 	if err := client.Run(context.Background(), func(ctx context.Context) error {
 		err := InvokeAuth(client, ctx, *firstAuth)
@@ -109,8 +111,10 @@ func main() {
 					if d.FolderID != 0 {
 						continue
 					}
-					if d.UnreadMark || d.UnreadCount > 0 {
+					if (!*onlyUnmuted || !time.Unix(int64(d.NotifySettings.MuteUntil), 0).After(nowTime)) &&
+						(d.UnreadMark || d.UnreadCount > 0) {
 						sum++
+
 					}
 				}
 
