@@ -27,6 +27,8 @@ After installation, you should run `polybar-telegram` in terminal with auth flag
 polybar-telegram -auth
 ```
 
+You can run `polybar-telegram` with `-onlyUnread` flag show messages in unmuted chats
+
 ## Module
 ```ini
 [module/telegram]
