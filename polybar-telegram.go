@@ -16,6 +16,7 @@ import (
 	"golang.org/x/xerrors"
 	"os"
 	"strconv"
+	"text/template"
 	"time"
 )
 
@@ -47,6 +48,7 @@ const DialogsLimit = 100
 func main() {
 	firstAuth := flag.Bool("auth", false, "perform authorization")
 	onlyUnmuted := flag.Bool("onlyUnmuted", false, "count only unmuted dialogs")
+	outputFormat := flag.String("format", "{{.unread}}/{{.mentions}}", "output format")
 	flag.Parse()
 
 	sessionStorage := &MemorySession{}
@@ -140,7 +142,14 @@ func main() {
 				isEnded = false
 			}
 		}
-		fmt.Printf("%v/%v\n", sumUnread, sumMentions) // TODO: add custom format
+		t := template.Must(template.New("").Parse(*outputFormat))
+		err = t.Execute(os.Stdout, map[string]interface{}{
+			"unread":   sumUnread,
+			"mentions": sumMentions,
+		})
+		if err != nil {
+			return err
+		}
 
 		return nil
 	}); err != nil {
