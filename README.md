@@ -24,15 +24,21 @@ polybar-telegram needs some environs:
 After installation, you should run `polybar-telegram` in terminal with auth flag:
 ```shell
 # make sure polybar-telegram is in $PATH
-polybar-telegram -auth
+polybar-telegram -a
 ```
 
-You can run `polybar-telegram` with `-onlyUnread` flag show messages in unmuted chats
+You can run `polybar-telegram` with `-u` flag show messages in unmuted chats.
+To specify output format use `-f` flag
+```shell
+# {{.unread}} - number of unread messages
+# {{.mentions}} - number of mentions
+polybar-telegram -f "t {{.unread}} m {{.mentions}}"
+```
 
 ## Module
 ```ini
 [module/telegram]
 type = custom/script
-exec = $HOME/go/bin/polybar-telegram
+exec = polybar-telegram
 interval = 10 
 ```

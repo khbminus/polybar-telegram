@@ -46,9 +46,9 @@ func getMapperDialog(dialog *tg.Dialog) MessageMapper {
 const DialogsLimit = 100
 
 func main() {
-	firstAuth := flag.Bool("auth", false, "perform authorization")
-	onlyUnmuted := flag.Bool("onlyUnmuted", false, "count only unmuted dialogs")
-	outputFormat := flag.String("format", "{{.unread}}/{{.mentions}}", "output format")
+	firstAuth := flag.Bool("a", false, "perform authorization")
+	onlyUnmuted := flag.Bool("u", false, "count only unmuted dialogs")
+	outputFormat := flag.String("f", "{{.unread}}/{{.mentions}}", "output format")
 	flag.Parse()
 
 	sessionStorage := &MemorySession{}
