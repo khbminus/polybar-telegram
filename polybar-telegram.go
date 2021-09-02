@@ -16,6 +16,7 @@ import (
 	"golang.org/x/xerrors"
 	"os"
 	"strconv"
+	"text/template"
 	"time"
 )
 
@@ -47,6 +48,7 @@ const DialogsLimit = 100
 func main() {
 	firstAuth := flag.Bool("auth", false, "perform authorization")
 	onlyUnmuted := flag.Bool("onlyUnmuted", false, "count only unmuted dialogs")
+	outputFormat := flag.String("format", "{{.unread}}/{{.mentions}}", "output format")
 	flag.Parse()
 
 	sessionStorage := &MemorySession{}
@@ -74,56 +76,60 @@ func main() {
 			OffsetID:   0,
 			Limit:      DialogsLimit,
 		}
-		sum := 0
+		sumUnread, sumMentions := 0, 0
 		for isEnded := true; isEnded; {
-			dialogs, err := api.MessagesGetDialogs(ctx, &params)
+			_dialogs, err := api.MessagesGetDialogs(ctx, &params)
 			for err != nil {
 				if e, ok := xerrors.Unwrap(err).(*tgerr.Error); ok {
 					if !e.IsCode(420) {
 						return err
 					} else {
-						time.Sleep(30 * time.Second)
+						time.Sleep(3 * time.Second)
 					}
 				} else {
 					return err
 				}
 
-				dialogs, err = api.MessagesGetDialogs(ctx, &params)
+				_dialogs, err = api.MessagesGetDialogs(ctx, &params)
 			}
 
-			if v, ok := dialogs.(*tg.MessagesDialogsSlice); ok {
-				m := make(map[MessageMapper]*tg.Message)
-				for _, t := range v.Messages {
-					switch message := t.(type) {
-					case *tg.Message:
-						m[getMapper(message)] = message
+			if dialogs, ok := _dialogs.(*tg.MessagesDialogsSlice); ok {
+				messageByDialog := make(map[MessageMapper]*tg.Message)
+				for _, _message := range dialogs.Messages {
+					if message, ok := _message.(*tg.Message); ok {
+						messageByDialog[getMapper(message)] = message
 					}
 				}
 
-				if len(v.Dialogs) < DialogsLimit {
+				if len(dialogs.Dialogs) < DialogsLimit {
 					isEnded = false
 					break
 				}
 
 				var lastMessage *tg.Message = nil
-				for _, dd := range v.Dialogs {
-					d := dd.(*tg.Dialog)
-					if d.FolderID != 0 {
-						continue
-					}
-					if (!*onlyUnmuted || !time.Unix(int64(d.NotifySettings.MuteUntil), 0).After(nowTime)) &&
-						(d.UnreadMark || d.UnreadCount > 0) {
-						sum++
-
+				for _, _dialog := range dialogs.Dialogs {
+					if dialog, ok := _dialog.(*tg.Dialog); ok {
+						if dialog.FolderID != 0 {
+							continue
+						}
+						if (!*onlyUnmuted ||
+							!time.Unix(int64(dialog.NotifySettings.MuteUntil), 0).After(nowTime)) &&
+							(dialog.UnreadMark || dialog.UnreadCount > 0) {
+							sumUnread++
+						}
+						if dialog.UnreadMentionsCount > 0 { // If you have mentioned, that is something important, so you need to read this
+							sumMentions++
+						}
 					}
 				}
 
-				for i := len(v.Dialogs) - 1; i >= 0; i-- {
-					d := v.Dialogs[i].(*tg.Dialog)
-					k, ok := m[getMapperDialog(d)]
-					if ok {
-						lastMessage = k
-						break
+				for i := len(dialogs.Dialogs) - 1; i >= 0; i-- {
+					if dialog, ok := dialogs.Dialogs[i].(*tg.Dialog); ok {
+						message, ok := messageByDialog[getMapperDialog(dialog)]
+						if ok {
+							lastMessage = message
+							break
+						}
 					}
 				}
 
@@ -136,7 +142,14 @@ func main() {
 				isEnded = false
 			}
 		}
-		fmt.Println(sum)
+		t := template.Must(template.New("").Parse(*outputFormat))
+		err = t.Execute(os.Stdout, map[string]interface{}{
+			"unread":   sumUnread,
+			"mentions": sumMentions,
+		})
+		if err != nil {
+			return err
+		}
 
 		return nil
 	}); err != nil {
