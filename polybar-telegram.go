@@ -49,6 +49,7 @@ func main() {
 	firstAuth := flag.Bool("a", false, "perform authorization")
 	onlyUnmuted := flag.Bool("u", false, "count only unmuted dialogs")
 	outputFormat := flag.String("f", "{{.unread}}/{{.mentions}}", "output format")
+	hideOption := flag.Bool("i", false, "hide if zero messages")
 	flag.Parse()
 
 	sessionStorage := &MemorySession{}
@@ -143,10 +144,12 @@ func main() {
 			}
 		}
 		t := template.Must(template.New("").Parse(*outputFormat))
-		err = t.Execute(os.Stdout, map[string]interface{}{
-			"unread":   sumUnread,
-			"mentions": sumMentions,
-		})
+		if !*hideOption || sumUnread+sumMentions > 0 {
+			err = t.Execute(os.Stdout, map[string]interface{}{
+				"unread":   sumUnread,
+				"mentions": sumMentions,
+			})
+		}
 		if err != nil {
 			return err
 		}

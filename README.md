@@ -28,6 +28,9 @@ polybar-telegram -a
 ```
 
 You can run `polybar-telegram` with `-u` flag show messages in unmuted chats.
+
+You can run `polybar-telegram` with `-i` to hide the module if you have 0 unread messages.
+
 To specify output format use `-f` flag
 ```shell
 # {{.unread}} - number of unread messages
